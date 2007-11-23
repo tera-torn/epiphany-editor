@@ -1,0 +1,10 @@
+epiphany-editor depends on python2.3 or greater, pygame, and pygtk. Please install them first.
+
+Then you may run the editor:
+
+./epiphany-editor
+
+Or you may symlink it in to your path, like:
+
+ln -s `pwd`/epiphany-editor /usr/bin/
+

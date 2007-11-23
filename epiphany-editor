@@ -1,0 +1,472 @@
+#!/usr/bin/env python
+# vim: filetype=python
+import os, sys
+import os.path
+import pygame
+from pygame.locals import *
+
+# path to the epiphany game executable file
+# this may be a full path if desired
+epiphany_path = "epiphany-game"
+
+image_paths = ['/usr/share/epiphany-editor/tiles.tga', '/usr/local/share/epiphany-editor/tiles.tga']
+
+# crappy attempt to locate the path to this file so that we can try and load
+# tiles.tga from the same directory
+fn = __file__
+link = None
+try:
+    link = os.readlink(__file__)
+except OSError:
+    pass
+if link:
+    if link.startswith("/"):
+        fn = link
+    else:
+        fn = "%s/%s" % (os.path.dirname(__file__), link)
+        fn = os.path.abspath(fn)
+
+image_paths.insert(0, os.path.dirname(fn) + "/tiles.tga")
+
+tiles_surface = None
+for path in image_paths:
+    if os.path.exists(path):
+        tiles_surface = pygame.image.load(path)
+        break
+
+if tiles_surface is None:
+    print "Couldn't locate tiles.tga"
+    sys.exit(1)
+
+pygame.init()
+screen = pygame.display.set_mode((640, 544),  HWSURFACE|HWPALETTE|RESIZABLE)
+
+# this was an attempt at a C module that would set window resize hints to the tile size
+# so that the window would "snap" to new sizes on 32 pixel increments. I decided it wasn't
+# worth it :)
+#import _x11_hints
+#data = pygame.display.get_wm_info()
+#_x11_hints.set_resize_incr(data['wmwindow'], 32, 32)
+#_x11_hints.set_resize_incr(data['wmwindow'])
+
+pygame.display.set_caption('Epiphany Map Editor')
+pygame.key.set_repeat(200, 30)
+
+tile_names = ["grass", "boulder", "emerald", "sapphire", "brick", "bomb", "doorRed", "doorGreen", "doorBlue", "doorYellow", "steel", "wood", "peperon", "tomato", "empty", "exit", "player", "keyRed", "keyGreen", "keyBlue", "keyYellow"] 
+tiles = {}
+tiles_list = []
+
+for i, name in enumerate(tile_names):
+    s = pygame.Surface((32,32))
+    s.blit(tiles_surface, (0,0), (i*32,0,32,32))
+    tiles[name] = s
+    tiles_list.append(s)
+del tiles_surface
+
+tileRow1 = tiles_list[:10]
+tileRow2 = tiles_list[10:]
+
+map_names = {tiles["grass"]:"grass", tiles["boulder"]:"boulder", tiles["emerald"]:"emerald", tiles["sapphire"]:"sapphire", tiles["brick"]:"brick", tiles["bomb"]:"flintstone", tiles["steel"]:"steel", tiles["wood"]:"wood", tiles["peperon"]:"peperon", tiles["tomato"]:"tomato", tiles["empty"]:"unknown", tiles["exit"]:"exit", tiles["player"]:"player", tiles["keyRed"]:"red_key", tiles["keyGreen"]:"green_key", tiles["keyBlue"]:"blue_key", tiles["keyYellow"]:"yellow_key", tiles["doorRed"]:"red_door", tiles["doorGreen"]:"green_door", tiles["doorBlue"]:"blue_door", tiles["doorYellow"]:"yellow_door"}
+
+map_names_to_tile = {}
+for k,v in map_names.items():
+    map_names_to_tile[v] = k
+
+
+class MapEditor:
+    # field sizes. field refers to the field of game tiles, not counting the rows of buttons
+    # at the bottom
+    fcols = 20
+    fx = 20 * 32
+    frows = 15
+    fy = 15 * 32
+
+    fileName = None
+    modified = False # do we need to prompt for unsaved changes?
+
+    # yes, these need to be editable...
+    levelName = "foo"
+    author = "bar"
+    maxTime = 100
+    minScore = "auto"
+
+    # tiles that can only appear once
+    onlyOne = [tiles["keyRed"], tiles["keyGreen"], tiles["keyBlue"], tiles["keyYellow"], tiles["player"], tiles["exit"]]
+    # map the single-use tiles to their current position in the grid
+    oncePos = {}
+    # e.g. oncePos[tiles["keyRed"]] = (3,2)
+
+    tile = tiles["grass"] # the currently selected tile
+    grid = [[tiles["grass"]]*32 for n in xrange(32)] # grid of screen tiles
+    # is 32x32 instead of 30x30 to allow for the ring of steel tiles around the perimeter
+    gridOrigin = [0,0]
+
+    lastBox = (0,0,0,0)
+
+    font = pygame.font.Font(None, 25)
+    color = pygame.color.Color("white")
+    helpLine1 = font.render("Keys: l - load, s - save, q - quit", True, color)   
+    helpLine2 = font.render("p - play, left,right,up,down - move", True, color)   
+
+    def __init__(self, screen):
+        self.screen = screen
+
+        for y in xrange(32):
+            self.grid[0][y] = tiles["steel"]
+            self.grid[31][y] = tiles["steel"]
+        for x in xrange(32):
+            self.grid[x][0] = tiles["steel"]
+            self.grid[x][31] = tiles["steel"]
+
+        self.handlers = {QUIT            : self.event_QUIT,
+                         MOUSEBUTTONDOWN : self.event_MOUSEBUTTONDOWN,
+                         MOUSEMOTION     : self.event_MOUSEMOTION,
+                         KEYUP           : self.event_KEYUP,
+                         KEYDOWN         : self.event_KEYDOWN,
+                         VIDEORESIZE     : self.event_VIDEORESIZE}
+
+    def mainloop(self):
+        get_handler = self.handlers.get
+        wait = pygame.event.wait
+        try:
+            while 1:
+                event = wait()
+                handler = get_handler(event.type)
+                if handler is not None:
+                    handler(event)
+        except SystemExit:
+            return
+        except Exception, e:
+            showError(e)
+            self.handleQuit()
+            return
+
+    def saveAs(self):
+        #figure out which filename to save as first
+        fn = self.getFileNameToSave()
+        if fn:
+            self.fileName = fn
+            self.saveFile()
+
+    def saveFile(self):
+        try:
+            f = file(self.fileName, "w")
+            f.write("set name \"%s\";\n" % self.levelName)
+            f.write("set author \"%s\";\n" % self.author)
+            f.write("set maxtime %s;\n" % self.maxTime)
+            for x in xrange(30):
+                for y in xrange(30):
+                    f.write("put %s (%s,%s);\n" % (map_names[self.grid[x+1][y+1]], y+1, x+1))
+                    
+            f.write("write;\n")
+            f.write("view;\n")
+            f.write("set minscore \"%s\";\n" % self.minScore)
+            f.close()
+        except Exception, e:
+            showError(e)
+            return
+
+        self.modified = False
+
+    def getFileNameToSave(self):
+        """Return filename to save or None"""
+        import pygtk
+        pygtk.require('2.0')
+        import gtk
+
+        dialog = gtk.FileSelection()
+        r = dialog.run()
+        fn = dialog.get_filename()
+        dialog.destroy()
+        gtk.main_iteration()
+        gtk.main_iteration()
+        gtk.main_iteration()
+
+        if r != gtk.RESPONSE_OK:
+            return
+
+        import os.path
+        if os.path.isdir(fn):
+            #error
+            dialog = gtk.MessageDialog(type=gtk.MESSAGE_INFO, buttons=gtk.BUTTONS_OK, message_format="You must provide a file name to save to. File remains UNSAVED.")
+            dialog.run()
+            dialog.destroy()
+            gtk.main_iteration()
+            gtk.main_iteration()
+            gtk.main_iteration()
+            return
+
+        if os.path.exists(fn):
+            dialog = gtk.MessageDialog(type=gtk.MESSAGE_INFO, buttons=gtk.BUTTONS_OK_CANCEL, message_format="File already exists! Overwrite?")
+            r = dialog.run()
+            dialog.destroy()
+            gtk.main_iteration()
+            gtk.main_iteration()
+            gtk.main_iteration()
+            if r != gtk.RESPONSE_OK:
+                return
+        return fn
+
+    def loadFile(self):
+        import pygtk
+        pygtk.require('2.0')
+        import gtk
+
+        dialog = gtk.FileSelection()
+        r = dialog.run()
+        fn = dialog.get_filename()
+        dialog.destroy()
+        gtk.main_iteration()
+        gtk.main_iteration()
+        gtk.main_iteration()
+
+        if r != gtk.RESPONSE_OK:
+            return
+
+        f = file(fn)
+
+        self.fileName = fn
+        for line in f:
+            try:
+                cmd, arg1, arg2 = line.split(" ", 2)
+            except:
+                pass
+            if cmd == "set":
+                if arg1 == "name":
+                    self.levelName = arg2[1:-3]
+                elif arg1 == "author":
+                    self.author = arg2[1:-3]
+                elif arg1 == "maxtime":
+                    self.maxTime = int(arg2[:-2])
+                elif arg1 == "minscore":
+                    self.minScore = arg2[1:-3]
+            elif cmd == "put":
+                y,x = arg2[1:-3].split(",")
+                x,y = int(x),int(y)
+                t = map_names_to_tile[arg1]
+                self.grid[x][y] = t
+                if t in self.onlyOne:
+                    self.oncePos[t] = (x,y)
+        f.close()
+
+    def blitGrid(self):
+        start_x, start_y = self.gridOrigin
+        blit = self.screen.blit
+        grid = self.grid
+
+        for x in xrange(start_x, start_x+self.fcols):
+            for y in xrange(start_y, start_y+self.frows):
+                blit(grid[x][y], ( (x - start_x) * 32, (y - start_y) * 32) )
+
+
+    def handleQuit(self):
+        if self.modified:
+            # save first?
+            import pygtk
+            pygtk.require('2.0')
+            import gtk
+            dialog = gtk.MessageDialog(type=gtk.MESSAGE_QUESTION, buttons=gtk.BUTTONS_YES_NO, message_format="You have unsaved changes! Save them now?")
+            r = dialog.run()
+            dialog.destroy()
+            gtk.main_iteration()
+            gtk.main_iteration()
+            gtk.main_iteration()
+            if r == gtk.RESPONSE_YES:
+                if self.fileName:
+                    self.saveFile()
+                else:
+                    self.saveAs()
+
+    def event_VIDEORESIZE(self, event):
+        x,y = event.size
+        cols, rows = (x/32, y/32)
+        if cols > 32:
+            cols = 32
+        if rows > 32:
+            rows = 32
+
+        cur_x, cur_y = self.screen.get_size()
+        new_x, new_y = cols*32, rows*32
+
+        if (cur_x,cur_y) != (new_x, new_y):
+            pygame.display.set_mode((new_x, new_y), RESIZABLE|DOUBLEBUF)
+            self.fcols = cols
+            self.frows = rows-2
+            self.fx = cols * 32
+            self.fy = (rows-2) * 32
+            # change gridOrigin if it doesn't make any sense now
+            if self.gridOrigin[0] + self.fcols > 32:
+                self.gridOrigin[0] = 32 - self.fcols
+            if self.gridOrigin[1] + self.frows > 32:
+                self.gridOrigin[1] = 32 - self.frows
+
+            self.blitGrid()
+            self.blitButtons()
+            pygame.display.update()
+            #data = pygame.display.get_wm_info()
+            #_x11_hints.set_resize_incr(data['wmwindow'], 32, 32)
+
+    def blitButtons(self):
+        blit = self.screen.blit
+        y = self.frows * 32
+        y2 = y+32
+        for i,t in enumerate(tileRow1):
+            blit(t, (i*32,y))
+        for i,t in enumerate(tileRow2):
+            blit(t, (i*32,y2))
+        blit(self.helpLine1, (355,self.fy+10))
+        blit(self.helpLine2, (355,self.fy+30))
+
+    def event_MOUSEMOTION(self, event):
+        #skip lastBox
+        x,y = event.pos
+        lx, lx2, ly, ly2 = self.lastBox
+        if x >= lx and x < lx2 and y >= ly and y < ly2:
+            return
+
+        if y < self.fy and event.buttons[0] == 1:
+            self.handleFieldClick(x,y)
+
+    def event_MOUSEBUTTONDOWN(self, event):
+        x,y = event.pos
+        #select tile
+        if y >= self.frows * 32:
+            row = None
+            if y < (self.frows * 32 + 32) and x < 320:
+                row = tileRow1
+            elif y >= (self.frows * 32 + 32) and x < 352:
+                row = tileRow2
+            if row:
+                x = x/32
+                self.tile = row[x]
+        else:
+            self.handleFieldClick(*event.pos)
+
+    def handleFieldClick(self, x, y):
+        self.modified = True
+        # the column and row number ON THE SCREEN, not in the grid
+        col = x/32
+        row = y/32
+
+        if x > self.fx:
+            return
+
+        if self.gridOrigin[0] == 0 and col == 0:
+            return
+        if (self.gridOrigin[0] + col) >= 31:
+            return
+        if self.gridOrigin[1] == 0 and row == 0:
+            return
+        if (self.gridOrigin[1] + row) >= 31:
+            return
+
+        # position of this field row/col in the grid
+        grid_x = col + self.gridOrigin[0]
+        grid_y = row + self.gridOrigin[1]
+
+        # is it a tile that only appears once?
+        if self.tile in self.onlyOne:
+            # if it is already on the screen, remove it
+            if self.tile in self.oncePos:
+                last_x, last_y = self.oncePos[self.tile]
+                self.grid[last_x][last_y] = tiles["empty"]
+                last_x = last_x - self.gridOrigin[0]
+                last_y = last_y - self.gridOrigin[1]
+                self.screen.blit(tiles["empty"], (last_x*32, last_y*32))
+                pygame.display.update((last_x*32,last_y*32,32,32))
+            # remember where we put it
+            self.oncePos[self.tile] = (grid_x, grid_y)
+
+        # are we now covering up a single-use tile?
+        if self.grid[grid_x][grid_y] in self.oncePos:
+            # forget the saved position for the 'one time' tile we're covering up
+            del self.oncePos[self.grid[grid_x][grid_y]]
+
+        # update grid
+        self.grid[grid_x][grid_y] = self.tile
+        # update screen
+        x = 32 * col
+        y = 32 * row
+        # save coords of this tile so we can skip it on subsequent mouse motion events
+        self.lastBox = (x, x+32, y, y+32)
+        self.screen.blit(self.tile, (x, y))
+        pygame.display.update((x,y,32,32))
+
+
+    def event_KEYUP(self, event):
+        key = event.key
+        if key == K_s:
+            print "SAVING FILE"
+            if self.fileName:
+                self.saveFile()
+            else:
+                self.saveAs()
+
+        elif key == K_l:
+            print "LOADING FILE"
+            try:
+                self.loadFile()
+            except Exception, e:
+                showError(e)
+                return
+            self.blitGrid()
+            pygame.display.update()
+        elif key == K_q:
+            self.handleQuit()
+            raise SystemExit
+        elif key == K_p or key == K_r:
+            if self.fileName:
+                self.saveFile()
+            else:
+                self.saveAs()
+
+            if self.fileName:
+                os.system("%s %s" % (epiphany_path, self.fileName))
+
+
+    def event_KEYDOWN(self, event):
+        if event.key == 276: #left
+            x,y = self.gridOrigin
+            if x > 0:
+                self.gridOrigin[0] = x-1
+
+        elif event.key == 275: #right
+            x,y = self.gridOrigin
+            if (x + self.fcols) < 32:
+                self.gridOrigin[0] = x+1
+        elif event.key == 273: #up
+            x,y = self.gridOrigin
+            if y > 0:
+                self.gridOrigin[1] = y-1
+        elif event.key == 274: #down
+            x,y = self.gridOrigin
+            if (y + self.frows) < 32:
+                self.gridOrigin[1] = y+1
+        self.blitGrid()
+        pygame.display.update()
+
+    def event_QUIT(self, event):
+        self.handleQuit()
+        raise SystemExit
+
+def showError(msg):
+    import pygtk
+    pygtk.require('2.0')
+    import gtk
+    dialog = gtk.MessageDialog(type=gtk.MESSAGE_ERROR, buttons=gtk.BUTTONS_OK, message_format="An error occured:\n\n%s" % msg)
+    dialog.run()
+    dialog.destroy()
+    gtk.main_iteration()
+    gtk.main_iteration()
+    gtk.main_iteration()
+
+
+#call set_mode again to make sure the window manager frame matches our
+#screen size
+#screen = pygame.display.set_mode((640, 544),  HWSURFACE|HWPALETTE|RESIZABLE)
+p = MapEditor(screen)
+p.blitGrid()
+p.blitButtons()
+pygame.display.update()
+
+p.mainloop()

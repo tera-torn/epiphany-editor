@@ -1,0 +1,12 @@
+"epiphany" or "epiphany-game" as the Epiphany executable
+to use.
+
+Edit map fields:
+    name
+    author
+    time limit
+    min score
+(Right now, you'll have to edit these with a text editor, once)
+
+
+Installation script
