@@ -430,8 +430,18 @@ class MapEditor:
                 self.saveAs()
 
             if self.fileName:
-                os.system("%s %s" % (epiphany_path, self.fileName))
+                gamePath = self.getGamePath()
+                command = "%s --map %s" % (gamePath, self.fileName)
+                #print "executing: %s" % (command,)
+                os.system(command)
 
+    def getGamePath(self):
+        gamePath = 'epiphany'
+        for pth in os.environ['PATH'].split(':'):
+            for name in ('epiphany', 'epiphany-game'):
+                if os.path.exists(pth + os.sep + name):
+                    return pth + os.sep + name
+        return gamePath
 
     def event_KEYDOWN(self, event):
         if event.key == 276: #left
