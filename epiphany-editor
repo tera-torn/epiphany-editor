@@ -103,9 +103,9 @@ class MapEditor:
     # field sizes. field refers to the field of game tiles, not counting the rows of buttons
     # at the bottom
     fcols = 20
-    fx = 20 * 32
+    fx = fcols * 32
     frows = 15
-    fy = 15 * 32
+    fy = frows * 32
 
     fileName = None
     modified = False # do we need to prompt for unsaved changes?
