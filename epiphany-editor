@@ -207,7 +207,6 @@ class MapEditor:
         if r != gtk.RESPONSE_OK:
             return
 
-        import os.path
         if os.path.isdir(fn):
             #error
             dialog = gtk.MessageDialog(type=gtk.MESSAGE_INFO, buttons=gtk.BUTTONS_OK, message_format="You must provide a file name to save to. File remains UNSAVED.")
