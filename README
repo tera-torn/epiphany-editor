@@ -1,0 +1,16 @@
+A map editor for the Boulder-dash clone, Epiphany!
+
+See INSTALL for installation instructions.
+
+Feel free to hack on it and send me patches!
+
+epiphany-editor is developed using the darcs revision control system.
+
+You should see a _darcs directory which contains the full revision control
+history for the project.
+
+Just install darcs on your system and get hacking!
+
+Cheers,
+Eric Mangold <teratorn@gmail.com>
+
