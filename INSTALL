@@ -1,4 +1,8 @@
-epiphany-editor depends on python2.3 or greater, pygame, and pygtk. Please install them first.
+epiphany-editor depends on python2.3 or greater, pygame, and pygtk2. Please install them first.
+
+On Debian or Ubuntu try this:
+
+sudo apt-get install python python-gtk2 python-pygame
 
 Then you may run the editor:
 
