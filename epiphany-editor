@@ -18,6 +18,23 @@ except:
     print "This is the actual Python error we encountered:"
     raise
 
+try:
+    import pygtk
+    pygtk.require('2.0')
+    import gtk
+except:
+    print "I'm sorry, it appears you don't have PyGTK2 installed."
+    print
+    print "Depending on what operating system you are using, you may be able to install"
+    print "PyGTK2 from packages. E.g. on Debian or Ubuntu try this command:"
+    print "    sudo apt-get install python-gtk2"
+    print 
+    print "If you can't install from packages then you will need to download and install"
+    print "PyGTK2 by hand. Go to http://pygtk.org/ for instructions."
+    print
+    print "This is the actual Python error we encountered:"
+    raise
+
 image_paths = ['/usr/share/epiphany-editor/tiles.tga', '/usr/local/share/epiphany-editor/tiles.tga']
 
 # crappy attempt to locate the path to this file so that we can try and load
@@ -179,10 +196,6 @@ class MapEditor:
 
     def getFileNameToSave(self):
         """Return filename to save or None"""
-        import pygtk
-        pygtk.require('2.0')
-        import gtk
-
         dialog = gtk.FileSelection()
         r = dialog.run()
         fn = dialog.get_filename()
@@ -217,10 +230,6 @@ class MapEditor:
         return fn
 
     def loadFile(self):
-        import pygtk
-        pygtk.require('2.0')
-        import gtk
-
         dialog = gtk.FileSelection()
         r = dialog.run()
         fn = dialog.get_filename()
@@ -271,9 +280,6 @@ class MapEditor:
     def handleQuit(self):
         if self.modified:
             # save first?
-            import pygtk
-            pygtk.require('2.0')
-            import gtk
             dialog = gtk.MessageDialog(type=gtk.MESSAGE_QUESTION, buttons=gtk.BUTTONS_YES_NO, message_format="You have unsaved changes! Save them now?")
             r = dialog.run()
             dialog.destroy()
@@ -469,9 +475,6 @@ class MapEditor:
         raise SystemExit
 
 def showError(msg):
-    import pygtk
-    pygtk.require('2.0')
-    import gtk
     dialog = gtk.MessageDialog(type=gtk.MESSAGE_ERROR, buttons=gtk.BUTTONS_OK, message_format="An error occured:\n\n%s" % msg)
     dialog.run()
     dialog.destroy()
