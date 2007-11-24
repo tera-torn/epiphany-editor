@@ -65,7 +65,7 @@ if tiles_surface is None:
     sys.exit(1)
 
 pygame.init()
-screen = pygame.display.set_mode((640, 544),  HWSURFACE|HWPALETTE|RESIZABLE)
+screen = pygame.display.set_mode((800, 704),  HWSURFACE|HWPALETTE|RESIZABLE)
 
 # this was an attempt at a C module that would set window resize hints to the tile size
 # so that the window would "snap" to new sizes on 32 pixel increments. I decided it wasn't
@@ -102,9 +102,9 @@ for k,v in map_names.items():
 class MapEditor:
     # field sizes. field refers to the field of game tiles, not counting the rows of buttons
     # at the bottom
-    fcols = 20
+    fcols = 25
     fx = fcols * 32
-    frows = 15
+    frows = 20 
     fy = frows * 32
 
     fileName = None
@@ -113,7 +113,7 @@ class MapEditor:
     # yes, these need to be editable...
     levelName = "foo"
     author = "bar"
-    maxTime = 100
+    maxTime = "100"
     minScore = "auto"
 
     # tiles that can only appear once
@@ -131,7 +131,7 @@ class MapEditor:
 
     font = pygame.font.Font(None, 25)
     color = pygame.color.Color("white")
-    helpLine1 = font.render("Keys: l - load, s - save, q - quit", True, color)   
+    helpLine1 = font.render("Keys: l - load, s - save, q - quit, e - edit map info", True, color)   
     helpLine2 = font.render("p - play, left,right,up,down - move", True, color)   
 
     def __init__(self, screen):
@@ -254,7 +254,7 @@ class MapEditor:
                 elif arg1 == "author":
                     self.author = arg2[1:-3]
                 elif arg1 == "maxtime":
-                    self.maxTime = int(arg2[:-2])
+                    self.maxTime = arg2[:-2]
                 elif arg1 == "minscore":
                     self.minScore = arg2[1:-3]
             elif cmd == "put":
@@ -439,6 +439,76 @@ class MapEditor:
                 command = "%s --map %s" % (gamePath, self.fileName)
                 #print "executing: %s" % (command,)
                 os.system(command)
+        elif key == K_e:
+            dialog = gtk.Dialog("Map Information", None,
+                                gtk.DIALOG_MODAL | gtk.DIALOG_DESTROY_WITH_PARENT,
+                                (gtk.STOCK_OK, gtk.RESPONSE_ACCEPT,
+                                 gtk.STOCK_CANCEL, gtk.RESPONSE_REJECT))
+            hBox = gtk.HBox()
+            dialog.vbox.pack_start(hBox)
+            lbl = gtk.Label("Edit Map Information:")
+            lbl.show()
+            hBox.pack_start(lbl)
+
+            tbl = gtk.Table()
+            dialog.vbox.pack_start(tbl)
+
+            lbl = gtk.Label()
+            lbl.set_markup("<b>Level Name:</b>")
+            tbl.attach(lbl, 0, 1, 0, 1)
+            lbl.show()
+
+            lbl = gtk.Label()
+            lbl.set_markup("<b>Author Name:</b>")
+            tbl.attach(lbl, 0, 1, 1, 2)
+            lbl.show()
+
+            lbl = gtk.Label()
+            lbl.set_markup("<b>Max Time:</b>")
+            tbl.attach(lbl, 0, 1, 2, 3)
+            lbl.show()
+
+            lbl = gtk.Label()
+            lbl.set_markup("<b>Min Score:</b>")
+            tbl.attach(lbl, 0, 1, 3, 4)
+            lbl.show()
+
+            level_input = gtk.Entry()
+            level_input.set_text(self.levelName)
+            tbl.attach(level_input, 1, 2, 0, 1)
+            level_input.show()
+
+            author_input = gtk.Entry()
+            author_input.set_text(self.author)
+            tbl.attach(author_input, 1, 2, 1, 2)
+            author_input.show()
+
+            maxtime_input = gtk.Entry()
+            maxtime_input.set_text(self.maxTime)
+            tbl.attach(maxtime_input, 1, 2, 2, 3)
+            maxtime_input.show()
+
+            minscore_input = gtk.Entry()
+            minscore_input.set_text(self.minScore)
+            tbl.attach(minscore_input, 1, 2, 3, 4)
+            minscore_input.show()
+
+            tbl.show()
+
+            hBox.show()
+            r = dialog.run()
+            dialog.destroy()
+            gtk.main_iteration()
+            gtk.main_iteration()
+            gtk.main_iteration()
+
+            if r == gtk.RESPONSE_ACCEPT:
+                self.levelName = level_input.get_text()
+                self.author = author_input.get_text()
+                self.maxTime = maxtime_input.get_text()
+                self.minScore = minscore_input.get_text()
+
+                self.modified = True
 
     def getGamePath(self):
         gamePath = 'epiphany'
