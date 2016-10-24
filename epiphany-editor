@@ -4,7 +4,7 @@
 """
 Epiphany Map Editor
 """
-version = "0.2"
+version = "0.3"
 
 import os, sys
 import os.path
@@ -16,7 +16,7 @@ except:
     print
     print "Depending on what operating system you are using, you may be able to install"
     print "PyGame from packages. E.g. on Debian or Ubuntu try this command:"
-    print "    sudo apt-get install python-game"
+    print "    sudo apt-get install python-pygame"
     print 
     print "If you can't install from packages then you will need to download and install"
     print "PyGame by hand. Go to http://www.pygame.org/ for instructions."
@@ -137,8 +137,8 @@ class MapEditor:
 
     font = pygame.font.Font(None, 25)
     color = pygame.color.Color("white")
-    helpLine1 = font.render("Keys: l - load, s - save, q - quit, e - edit map info", True, color)   
-    helpLine2 = font.render("p - play, left,right,up,down - move", True, color)   
+    helpLine1 = font.render("Keys: o = open; s = save; q = quit; e = edit map info", True, color)
+    helpLine2 = font.render("p = play test; hljk,left,right,down,up = scroll", True, color)
 
     def __init__(self, screen):
         self.screen = screen
@@ -206,9 +206,7 @@ class MapEditor:
         r = dialog.run()
         fn = dialog.get_filename()
         dialog.destroy()
-        gtk.main_iteration()
-        gtk.main_iteration()
-        gtk.main_iteration()
+        loop_gtk_alot()
 
         if r != gtk.RESPONSE_OK:
             return
@@ -218,18 +216,14 @@ class MapEditor:
             dialog = gtk.MessageDialog(type=gtk.MESSAGE_INFO, buttons=gtk.BUTTONS_OK, message_format="You must provide a file name to save to. File remains UNSAVED.")
             dialog.run()
             dialog.destroy()
-            gtk.main_iteration()
-            gtk.main_iteration()
-            gtk.main_iteration()
+            loop_gtk_alot()
             return
 
         if os.path.exists(fn):
             dialog = gtk.MessageDialog(type=gtk.MESSAGE_INFO, buttons=gtk.BUTTONS_OK_CANCEL, message_format="File already exists! Overwrite?")
             r = dialog.run()
             dialog.destroy()
-            gtk.main_iteration()
-            gtk.main_iteration()
-            gtk.main_iteration()
+            loop_gtk_alot()
             if r != gtk.RESPONSE_OK:
                 return
         return fn
@@ -239,9 +233,7 @@ class MapEditor:
         r = dialog.run()
         fn = dialog.get_filename()
         dialog.destroy()
-        gtk.main_iteration()
-        gtk.main_iteration()
-        gtk.main_iteration()
+        loop_gtk_alot()
 
         if r != gtk.RESPONSE_OK:
             return
@@ -288,9 +280,7 @@ class MapEditor:
             dialog = gtk.MessageDialog(type=gtk.MESSAGE_QUESTION, buttons=gtk.BUTTONS_YES_NO, message_format="You have unsaved changes! Save them now?")
             r = dialog.run()
             dialog.destroy()
-            gtk.main_iteration()
-            gtk.main_iteration()
-            gtk.main_iteration()
+            loop_gtk_alot()
             if r == gtk.RESPONSE_YES:
                 if self.fileName:
                     self.saveFile()
@@ -422,8 +412,8 @@ class MapEditor:
             else:
                 self.saveAs()
 
-        elif key == K_l:
-            print "LOADING FILE"
+        elif key == K_o:
+            print "OPENING FILE"
             try:
                 self.loadFile()
             except Exception, e:
@@ -503,18 +493,16 @@ class MapEditor:
 
             hBox.show()
             r = dialog.run()
-            dialog.destroy()
-            gtk.main_iteration()
-            gtk.main_iteration()
-            gtk.main_iteration()
 
             if r == gtk.RESPONSE_ACCEPT:
                 self.levelName = level_input.get_text()
                 self.author = author_input.get_text()
                 self.maxTime = maxtime_input.get_text()
                 self.minScore = minscore_input.get_text()
-
                 self.modified = True
+
+            dialog.destroy()
+            loop_gtk_alot()
 
     def getGamePath(self):
         gamePath = 'epiphany'
@@ -525,20 +513,20 @@ class MapEditor:
         return gamePath
 
     def event_KEYDOWN(self, event):
-        if event.key == 276: #left
+        if event.key == 276 or event.key == K_h: #left
             x,y = self.gridOrigin
             if x > 0:
                 self.gridOrigin[0] = x-1
 
-        elif event.key == 275: #right
+        elif event.key == 275 or event.key == K_l: #right
             x,y = self.gridOrigin
             if (x + self.fcols) < 32:
                 self.gridOrigin[0] = x+1
-        elif event.key == 273: #up
+        elif event.key == 273 or event.key == K_k: #up
             x,y = self.gridOrigin
             if y > 0:
                 self.gridOrigin[1] = y-1
-        elif event.key == 274: #down
+        elif event.key == 274 or event.key == K_j: #down
             x,y = self.gridOrigin
             if (y + self.frows) < 32:
                 self.gridOrigin[1] = y+1
@@ -553,9 +541,12 @@ def showError(msg):
     dialog = gtk.MessageDialog(type=gtk.MESSAGE_ERROR, buttons=gtk.BUTTONS_OK, message_format="An error occured:\n\n%s" % msg)
     dialog.run()
     dialog.destroy()
-    gtk.main_iteration()
-    gtk.main_iteration()
-    gtk.main_iteration()
+    loop_gtk_alot()
+
+
+def loop_gtk_alot():
+    while gtk.events_pending():
+        gtk.main_iteration(False)
 
 
 #call set_mode again to make sure the window manager frame matches our
