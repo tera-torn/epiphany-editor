@@ -1,5 +1,5 @@
 set name "Pyro";
-set author "Eric "TeraTorn" Mangold";
+set author "teratorn";
 set maxtime 100;
 put player (1,1);
 put grass (2,1);
