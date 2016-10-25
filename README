@@ -1,16 +1,8 @@
 A map editor for the Boulder-dash clone, Epiphany!
 
-See INSTALL for installation instructions.
+See INSTALL for installation and usage instructions.
 
-Feel free to hack on it and send me patches!
 
-epiphany-editor is developed using the git revision control system.
+  Best Regards,
 
-You should see a .git directory which contains the full revision control
-history for the project.
-
-Just get git on your system and get hacking!
-
-Cheers,
-Eric Mangold <teratorn /AT/ zoho /DOT/ com>
-
+    -- Eric Mangold <teratorn /AT/ zoho /DOT/ com>
