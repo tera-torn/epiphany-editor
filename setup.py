@@ -1,7 +1,7 @@
 from setuptools import setup
 
 setup(name="epiphany-editor",
-      version="0.3",
+      version="0.3.1",
       description="Map Editor for Epiphany (a Boulder-Dash clone).",
       author="Eric P. Mangold",
       author_email="teratorn /AT/ zoho /DOT/ com",
