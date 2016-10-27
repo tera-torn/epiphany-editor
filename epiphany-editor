@@ -206,7 +206,7 @@ class MapEditor:
         r = dialog.run()
         fn = dialog.get_filename()
         dialog.destroy()
-        loop_gtk_alot()
+        gtk_loop_alot()
 
         if r != gtk.RESPONSE_OK:
             return
@@ -216,14 +216,14 @@ class MapEditor:
             dialog = gtk.MessageDialog(type=gtk.MESSAGE_INFO, buttons=gtk.BUTTONS_OK, message_format="You must provide a file name to save to. File remains UNSAVED.")
             dialog.run()
             dialog.destroy()
-            loop_gtk_alot()
+            gtk_loop_alot()
             return
 
         if os.path.exists(fn):
             dialog = gtk.MessageDialog(type=gtk.MESSAGE_INFO, buttons=gtk.BUTTONS_OK_CANCEL, message_format="File already exists! Overwrite?")
             r = dialog.run()
             dialog.destroy()
-            loop_gtk_alot()
+            gtk_loop_alot()
             if r != gtk.RESPONSE_OK:
                 return
         return fn
@@ -233,12 +233,15 @@ class MapEditor:
         r = dialog.run()
         fn = dialog.get_filename()
         dialog.destroy()
-        loop_gtk_alot()
+        gtk_loop_alot()
 
         if r != gtk.RESPONSE_OK:
             return
 
-        f = file(fn)
+        self._loadFile(fn)
+
+    def _loadFile(self, fn):
+        f = file(fn, 'r')
 
         self.fileName = fn
         for line in f:
@@ -271,6 +274,9 @@ class MapEditor:
                     self.oncePos[t] = (x,y)
         f.close()
 
+        self.blitGrid()
+        pygame.display.update()
+
     def blitGrid(self):
         start_x, start_y = self.gridOrigin
         blit = self.screen.blit
@@ -287,7 +293,7 @@ class MapEditor:
             dialog = gtk.MessageDialog(type=gtk.MESSAGE_QUESTION, buttons=gtk.BUTTONS_YES_NO, message_format="You have unsaved changes! Save them now?")
             r = dialog.run()
             dialog.destroy()
-            loop_gtk_alot()
+            gtk_loop_alot()
             if r == gtk.RESPONSE_YES:
                 if self.fileName:
                     self.saveFile()
@@ -426,8 +432,6 @@ class MapEditor:
             except Exception, e:
                 showError(e)
                 return
-            self.blitGrid()
-            pygame.display.update()
         elif key == K_q:
             self.handleQuit()
             raise SystemExit
@@ -513,7 +517,7 @@ class MapEditor:
                 self.modified = True
 
             dialog.destroy()
-            loop_gtk_alot()
+            gtk_loop_alot()
 
     def getGamePath(self):
         gamePath = 'epiphany'
@@ -552,20 +556,38 @@ def showError(msg):
     dialog = gtk.MessageDialog(type=gtk.MESSAGE_ERROR, buttons=gtk.BUTTONS_OK, message_format="An error occured:\n\n%s" % msg)
     dialog.run()
     dialog.destroy()
-    loop_gtk_alot()
+    gtk_loop_alot()
 
 
-def loop_gtk_alot():
+def gtk_loop_alot():
     while gtk.events_pending():
         gtk.main_iteration(False)
 
 
-#call set_mode again to make sure the window manager frame matches our
-#screen size
-#screen = pygame.display.set_mode((640, 544),  HWSURFACE|HWPALETTE|RESIZABLE)
-p = MapEditor(screen)
-p.blitGrid()
-p.blitButtons()
-pygame.display.update()
+def usage():
+    sys.stderr.write('Usage: %s [ mylevel.map ]\n' % (sys.argv[0],))
+    sys.exit(1)
 
-p.mainloop()
+
+def main():
+    #call set_mode again to make sure the window manager frame matches our
+    #screen size
+    #screen = pygame.display.set_mode((640, 544),  HWSURFACE|HWPALETTE|RESIZABLE)
+    if len(sys.argv) > 2:
+        usage()
+
+    p = MapEditor(screen)
+
+    if len(sys.argv) == 2:
+        mapFile = sys.argv[1]
+        p._loadFile(mapFile)
+    else:
+        p.blitGrid()
+
+    p.blitButtons()
+    pygame.display.update()
+    p.mainloop()
+
+
+if __name__ == '__main__':
+    main()
