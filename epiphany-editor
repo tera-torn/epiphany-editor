@@ -192,7 +192,7 @@ class MapEditor:
                     
             f.write("write;\n")
             f.write("view;\n")
-            f.write("set minscore \"%s\";\n" % self.minScore)
+            f.write(("set minscore %r;\n" % self.minScore).replace("'", '"'))
             f.close()
         except Exception, e:
             showError(e)
@@ -254,7 +254,14 @@ class MapEditor:
                 elif arg1 == "maxtime":
                     self.maxTime = arg2[:-2]
                 elif arg1 == "minscore":
-                    self.minScore = arg2[1:-3]
+                    try:
+                        self.minScore = int(arg2[:-2])
+                    except ValueError:
+                        # expect a double-quote quoted string i.e. "auto"
+                        if not arg2.startswith("\"") or not arg2.endswith("\";\n"):
+                            raise ValueError, "Malformed minscore setting in map file!"
+                        self.minScore = arg2[1:-3]
+
             elif cmd == "put":
                 y,x = arg2[1:-3].split(",")
                 x,y = int(x),int(y)
@@ -485,7 +492,7 @@ class MapEditor:
             maxtime_input.show()
 
             minscore_input = gtk.Entry()
-            minscore_input.set_text(self.minScore)
+            minscore_input.set_text(str(self.minScore))
             tbl.attach(minscore_input, 1, 2, 3, 4)
             minscore_input.show()
 
@@ -499,6 +506,10 @@ class MapEditor:
                 self.author = author_input.get_text()
                 self.maxTime = maxtime_input.get_text()
                 self.minScore = minscore_input.get_text()
+                try:
+                    self.minScore = int(self.minScore)
+                except ValueError:
+                    pass
                 self.modified = True
 
             dialog.destroy()
