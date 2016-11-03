@@ -1,3 +1,12 @@
+Thanks to github user `giuppe' for preserving this old code on github!
+
+I've sinced re-forked from his ancient version, and cleaned things up
+a bit, making sure everything still work on current Python/Pygame/PyGTK.
+
+***
+
+Epiphany-Editor
+
 A graphical Map Editor for the Boulder-Dash clone, Epiphany!
 
 See INSTALL for installation and usage instructions.
