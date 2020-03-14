@@ -1,7 +1,7 @@
-Thanks to github user `giuppe' for preserving this old code on github!
+Thanks to github user `giuppe' for preserving my old code on github!
 
-I've sinced re-forked from his ancient version, and cleaned things up
-a bit, making sure everything still work on current Python/Pygame/PyGTK.
+I've sinced re-forked from that ancient version, and cleaned things up
+a bit, making sure everything still works on current Python/Pygame/PyGObject.
 
 ***
 

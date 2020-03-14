@@ -1,10 +1,10 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # vim: filetype=python
 
 """
 Epiphany Map Editor
 """
-version = "0.3.1"
+version = "0.4.2"
 
 import os, sys
 import os.path
@@ -12,33 +12,33 @@ try:
     import pygame
     from pygame.locals import *
 except:
-    print "I'm sorry, it appears you don't have PyGame installed."
-    print
-    print "Depending on what operating system you are using, you may be able to install"
-    print "PyGame from packages. E.g. on Debian or Ubuntu try this command:"
-    print "    sudo apt-get install python-pygame"
-    print 
-    print "If you can't install from packages then you will need to download and install"
-    print "PyGame by hand. Go to http://www.pygame.org/ for instructions."
-    print
-    print "This is the actual Python error we encountered:"
+    print("I'm sorry, it appears you don't have PyGame installed.")
+    print()
+    print("Depending on what operating system you are using, you may be able to install")
+    print("PyGame from packages. E.g. on Debian or Ubuntu try this command:")
+    print("    sudo apt-get install python3-pygame")
+    print()
+    print("If you can't install from packages then you will need to download and install")
+    print("PyGame by hand. Go to http://www.pygame.org/ for instructions.")
+    print()
+    print("This is the actual Python error we encountered:")
     raise
 
 try:
-    import pygtk
-    pygtk.require('2.0')
-    import gtk
+    import gi
+    gi.require_version('Gtk', '3.0')
+    from gi.repository import Gtk
 except:
-    print "I'm sorry, it appears you don't have PyGTK2 installed."
-    print
-    print "Depending on what operating system you are using, you may be able to install"
-    print "PyGTK2 from packages. E.g. on Debian or Ubuntu try this command:"
-    print "    sudo apt-get install python-gtk2"
-    print 
-    print "If you can't install from packages then you will need to download and install"
-    print "PyGTK2 by hand. Go to http://pygtk.org/ for instructions."
-    print
-    print "This is the actual Python error we encountered:"
+    print("I'm sorry, it appears you don't have PyGObject with GTK 3.0 installed.")
+    print()
+    print("Depending on what operating system you are using, you may be able to install")
+    print("PyGObject from packages. E.g. on Debian or Ubuntu try this command:")
+    print("    sudo apt-get install python3-gi")
+    print()
+    print("If you can't install from packages then you will need to download and install")
+    print("PyGObject by hand. Go to https://pygobject.readthedocs.io/en/latest/ for instructions.")
+    print()
+    print("This is the actual Python error we encountered:")
     raise
 
 image_paths = ['/usr/share/epiphany-editor/tiles.tga', '/usr/local/share/epiphany-editor/tiles.tga']
@@ -67,7 +67,7 @@ for path in image_paths:
         break
 
 if tiles_surface is None:
-    print "Couldn't locate tiles.tga"
+    print("Couldn't locate tiles.tga")
     sys.exit(1)
 
 pygame.init()
@@ -84,7 +84,7 @@ screen = pygame.display.set_mode((800, 704),  HWSURFACE|HWPALETTE|RESIZABLE)
 pygame.display.set_caption('Epiphany Map Editor %s' % (version,))
 pygame.key.set_repeat(200, 30)
 
-tile_names = ["grass", "boulder", "emerald", "sapphire", "brick", "bomb", "doorRed", "doorGreen", "doorBlue", "doorYellow", "steel", "wood", "peperon", "tomato", "empty", "exit", "player", "keyRed", "keyGreen", "keyBlue", "keyYellow"] 
+tile_names = ["grass", "boulder", "emerald", "sapphire", "brick", "bomb", "doorRed", "doorGreen", "doorBlue", "doorYellow", "steel", "wood", "peperon", "tomato", "empty", "exit", "player", "keyRed", "keyGreen", "keyBlue", "keyYellow"]
 tiles = {}
 tiles_list = []
 
@@ -110,7 +110,7 @@ class MapEditor:
     # at the bottom
     fcols = 25
     fx = fcols * 32
-    frows = 20 
+    frows = 20
     fy = frows * 32
 
     fileName = None
@@ -129,7 +129,7 @@ class MapEditor:
     # e.g. oncePos[tiles["keyRed"]] = (3,2)
 
     tile = tiles["grass"] # the currently selected tile
-    grid = [[tiles["grass"]]*32 for n in xrange(32)] # grid of screen tiles
+    grid = [[tiles["grass"]]*32 for n in range(32)] # grid of screen tiles
     # is 32x32 instead of 30x30 to allow for the ring of steel tiles around the perimeter
     gridOrigin = [0,0]
 
@@ -143,10 +143,10 @@ class MapEditor:
     def __init__(self, screen):
         self.screen = screen
 
-        for y in xrange(32):
+        for y in range(32):
             self.grid[0][y] = tiles["steel"]
             self.grid[31][y] = tiles["steel"]
-        for x in xrange(32):
+        for x in range(32):
             self.grid[x][0] = tiles["steel"]
             self.grid[x][31] = tiles["steel"]
 
@@ -168,7 +168,9 @@ class MapEditor:
                     handler(event)
         except SystemExit:
             return
-        except Exception, e:
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
             showError(e)
             self.handleQuit()
             return
@@ -182,19 +184,21 @@ class MapEditor:
 
     def saveFile(self):
         try:
-            f = file(self.fileName, "w")
-            f.write("set name \"%s\";\n" % self.levelName)
-            f.write("set author \"%s\";\n" % self.author)
-            f.write("set maxtime %s;\n" % self.maxTime)
-            for x in xrange(30):
-                for y in xrange(30):
-                    f.write("put %s (%s,%s);\n" % (map_names[self.grid[x+1][y+1]], y+1, x+1))
-                    
+            f = open(self.fileName, "w")
+            f.write("set name \"{}\";\n".format(self.levelName))
+            f.write("set author \"{}\";\n".format(self.author))
+            f.write("set maxtime {};\n".format(self.maxTime))
+            for x in range(30):
+                for y in range(30):
+                    f.write("put {} ({},{});\n".format(map_names[self.grid[x+1][y+1]], y+1, x+1))
+
             f.write("write;\n")
             f.write("view;\n")
-            f.write(("set minscore %r;\n" % self.minScore).replace("'", '"'))
+            f.write("set minscore {};\n".format(repr(self.minScore).replace("'", '"')))
             f.close()
-        except Exception, e:
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
             showError(e)
             return
 
@@ -202,46 +206,51 @@ class MapEditor:
 
     def getFileNameToSave(self):
         """Return filename to save or None"""
-        dialog = gtk.FileSelection()
+        dialog = Gtk.FileChooserNative(title="Choose file to save",
+                                       action=Gtk.FileChooserAction.SAVE)
+
         r = dialog.run()
         fn = dialog.get_filename()
         dialog.destroy()
         gtk_loop_alot()
 
-        if r != gtk.RESPONSE_OK:
+        print('r', r)
+        if r != Gtk.ResponseType.ACCEPT:
             return
 
         if os.path.isdir(fn):
             #error
-            dialog = gtk.MessageDialog(type=gtk.MESSAGE_INFO, buttons=gtk.BUTTONS_OK, message_format="You must provide a file name to save to. File remains UNSAVED.")
+            dialog = Gtk.MessageDialog(message_type=Gtk.MessageType.INFO, buttons=Gtk.ButtonsType.OK, text="You must provide a file name to save to. File remains UNSAVED.")
             dialog.run()
             dialog.destroy()
             gtk_loop_alot()
             return
 
         if os.path.exists(fn):
-            dialog = gtk.MessageDialog(type=gtk.MESSAGE_INFO, buttons=gtk.BUTTONS_OK_CANCEL, message_format="File already exists! Overwrite?")
+            dialog = Gtk.MessageDialog(message_type=Gtk.MessageType.INFO, buttons=Gtk.ButtonsType.OK_CANCEL, text="File already exists! Overwrite?")
             r = dialog.run()
             dialog.destroy()
             gtk_loop_alot()
-            if r != gtk.RESPONSE_OK:
+            if r != Gtk.ResponseType.OK:
                 return
         return fn
 
     def loadFile(self):
-        dialog = gtk.FileSelection()
+        dialog = Gtk.FileChooserNative(title="Choose map file to load",
+                                       action=Gtk.FileChooserAction.OPEN)
+        dialog.set_current_folder('.')
         r = dialog.run()
         fn = dialog.get_filename()
         dialog.destroy()
         gtk_loop_alot()
 
-        if r != gtk.RESPONSE_OK:
+        if r != Gtk.ResponseType.ACCEPT:
             return
 
         self._loadFile(fn)
 
     def _loadFile(self, fn):
-        f = file(fn, 'r')
+        f = open(fn, 'r')
 
         self.fileName = fn
         for line in f:
@@ -262,7 +271,7 @@ class MapEditor:
                     except ValueError:
                         # expect a double-quote quoted string i.e. "auto"
                         if not arg2.startswith("\"") or not arg2.endswith("\";\n"):
-                            raise ValueError, "Malformed minscore setting in map file!"
+                            raise ValueError("Malformed minscore setting in map file!")
                         self.minScore = arg2[1:-3]
 
             elif cmd == "put":
@@ -282,19 +291,19 @@ class MapEditor:
         blit = self.screen.blit
         grid = self.grid
 
-        for x in xrange(start_x, start_x+self.fcols):
-            for y in xrange(start_y, start_y+self.frows):
+        for x in range(start_x, start_x+self.fcols):
+            for y in range(start_y, start_y+self.frows):
                 blit(grid[x][y], ( (x - start_x) * 32, (y - start_y) * 32) )
 
 
     def handleQuit(self):
         if self.modified:
             # save first?
-            dialog = gtk.MessageDialog(type=gtk.MESSAGE_QUESTION, buttons=gtk.BUTTONS_YES_NO, message_format="You have unsaved changes! Save them now?")
+            dialog = Gtk.MessageDialog(message_type=Gtk.MessageType.QUESTION, buttons=Gtk.ButtonsType.YES_NO, text="You have unsaved changes! Save them now?")
             r = dialog.run()
             dialog.destroy()
             gtk_loop_alot()
-            if r == gtk.RESPONSE_YES:
+            if r == Gtk.ResponseType.YES:
                 if self.fileName:
                     self.saveFile()
                 else:
@@ -302,7 +311,7 @@ class MapEditor:
 
     def event_VIDEORESIZE(self, event):
         x,y = event.size
-        cols, rows = (x/32, y/32)
+        cols, rows = (x//32, y//32)
         if cols > 32:
             cols = 32
         if rows > 32:
@@ -360,7 +369,7 @@ class MapEditor:
             elif y >= (self.frows * 32 + 32) and x < 352:
                 row = tileRow2
             if row:
-                x = x/32
+                x = x//32
                 self.tile = row[x]
         else:
             self.handleFieldClick(*event.pos)
@@ -368,8 +377,8 @@ class MapEditor:
     def handleFieldClick(self, x, y):
         self.modified = True
         # the column and row number ON THE SCREEN, not in the grid
-        col = x/32
-        row = y/32
+        col = x//32
+        row = y//32
 
         if x > self.fx:
             return
@@ -419,17 +428,17 @@ class MapEditor:
     def event_KEYUP(self, event):
         key = event.key
         if key == K_s:
-            print "SAVING FILE"
+            print("SAVING FILE")
             if self.fileName:
                 self.saveFile()
             else:
                 self.saveAs()
 
         elif key == K_o:
-            print "OPENING FILE"
+            print("OPENING FILE")
             try:
                 self.loadFile()
-            except Exception, e:
+            except Exception as e:
                 showError(e)
                 return
         elif key == K_q:
@@ -443,59 +452,63 @@ class MapEditor:
 
             if self.fileName:
                 gamePath = self.getGamePath()
-                command = "%s --map %s" % (gamePath, self.fileName)
-                #print "executing: %s" % (command,)
-                os.system(command)
+                try:
+                    import subprocess
+                    subprocess.call([gamePath, '--map', self.fileName])
+                except Exception as e:
+                    import traceback
+                    traceback.print_exc()
+                    showError(e)
         elif key == K_e:
-            dialog = gtk.Dialog("Map Information", None,
-                                gtk.DIALOG_MODAL | gtk.DIALOG_DESTROY_WITH_PARENT,
-                                (gtk.STOCK_OK, gtk.RESPONSE_ACCEPT,
-                                 gtk.STOCK_CANCEL, gtk.RESPONSE_REJECT))
-            hBox = gtk.HBox()
-            dialog.vbox.pack_start(hBox)
-            lbl = gtk.Label("Edit Map Information:")
+            dialog = Gtk.Dialog(title="Map Information")
+            dialog.add_buttons(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,
+                               Gtk.STOCK_SAVE, Gtk.ResponseType.ACCEPT)
+
+            hBox = Gtk.HBox()
+            dialog.vbox.pack_start(hBox, True, True, 0)
+            lbl = Gtk.Label(label="Edit Map Information:")
             lbl.show()
-            hBox.pack_start(lbl)
+            hBox.pack_start(lbl, True, True, 0)
 
-            tbl = gtk.Table()
-            dialog.vbox.pack_start(tbl)
+            tbl = Gtk.Table(column_spacing=10, row_spacing=10)
+            dialog.vbox.pack_start(tbl, True, True, 0)
 
-            lbl = gtk.Label()
+            lbl = Gtk.Label()
             lbl.set_markup("<b>Level Name:</b>")
             tbl.attach(lbl, 0, 1, 0, 1)
             lbl.show()
 
-            lbl = gtk.Label()
+            lbl = Gtk.Label()
             lbl.set_markup("<b>Author Name:</b>")
             tbl.attach(lbl, 0, 1, 1, 2)
             lbl.show()
 
-            lbl = gtk.Label()
+            lbl = Gtk.Label()
             lbl.set_markup("<b>Max Time:</b>")
             tbl.attach(lbl, 0, 1, 2, 3)
             lbl.show()
 
-            lbl = gtk.Label()
+            lbl = Gtk.Label()
             lbl.set_markup("<b>Min Score:</b>")
             tbl.attach(lbl, 0, 1, 3, 4)
             lbl.show()
 
-            level_input = gtk.Entry()
+            level_input = Gtk.Entry()
             level_input.set_text(self.levelName)
             tbl.attach(level_input, 1, 2, 0, 1)
             level_input.show()
 
-            author_input = gtk.Entry()
+            author_input = Gtk.Entry()
             author_input.set_text(self.author)
             tbl.attach(author_input, 1, 2, 1, 2)
             author_input.show()
 
-            maxtime_input = gtk.Entry()
+            maxtime_input = Gtk.Entry()
             maxtime_input.set_text(self.maxTime)
             tbl.attach(maxtime_input, 1, 2, 2, 3)
             maxtime_input.show()
 
-            minscore_input = gtk.Entry()
+            minscore_input = Gtk.Entry()
             minscore_input.set_text(str(self.minScore))
             tbl.attach(minscore_input, 1, 2, 3, 4)
             minscore_input.show()
@@ -505,7 +518,8 @@ class MapEditor:
             hBox.show()
             r = dialog.run()
 
-            if r == gtk.RESPONSE_ACCEPT:
+            # XXX TODO only set self.modified if things changed
+            if r == Gtk.ResponseType.ACCEPT:
                 self.levelName = level_input.get_text()
                 self.author = author_input.get_text()
                 self.maxTime = maxtime_input.get_text()
@@ -553,19 +567,21 @@ class MapEditor:
         raise SystemExit
 
 def showError(msg):
-    dialog = gtk.MessageDialog(type=gtk.MESSAGE_ERROR, buttons=gtk.BUTTONS_OK, message_format="An error occured:\n\n%s" % msg)
+    dialog = Gtk.MessageDialog(message_type=Gtk.MessageType.ERROR,
+                               buttons=Gtk.ButtonsType.OK,
+                               text="An error occured:\n\n{}".format(msg))
     dialog.run()
     dialog.destroy()
     gtk_loop_alot()
 
 
 def gtk_loop_alot():
-    while gtk.events_pending():
-        gtk.main_iteration(False)
+    while Gtk.events_pending():
+        Gtk.main_iteration()
 
 
 def usage():
-    sys.stderr.write('Usage: %s [ mylevel.map ]\n' % (sys.argv[0],))
+    sys.stderr.write('Usage: {} [ mylevel.map ]\n'.format(sys.argv[0]))
     sys.exit(1)
 
 
